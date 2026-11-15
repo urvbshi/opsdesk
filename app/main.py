@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from datetime import date, datetime
 from typing import Optional
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
@@ -22,13 +23,15 @@ from app.auth import (
     enforce_agency_access,
 )
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 app = FastAPI(title="OpsDesk MVP-1", description="B2B Travel Operations Ticketing Platform")
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files using absolute path
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
-# Templates
-templates = Jinja2Templates(directory="app/templates")
+# Templates using absolute path
+templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
 
 @app.exception_handler(HTTPException)

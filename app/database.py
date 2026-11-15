@@ -1,11 +1,16 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./opsdesk.db")
+# Vercel serverless environment only permits writing to /tmp
+if os.getenv("VERCEL"):
+    DATABASE_URL = "sqlite:////tmp/opsdesk.db"
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./opsdesk.db")
 
 engine = create_engine(
     DATABASE_URL,
