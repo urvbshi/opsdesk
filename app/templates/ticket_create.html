@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Create Support Ticket - OpsDesk{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 1rem auto;">
+  <div style="margin-bottom: 1.25rem;">
+    <a href="/tickets" style="text-decoration: none; color: var(--primary); font-size: 0.9rem;">
+      &larr; Back to all tickets
+    </a>
+  </div>
+
+  <div class="card">
+    <div style="border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+      <h2 style="color: #0f172a; font-size: 1.4rem;">Create Context-Rich Ticket</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+        Fill in the booking parameters and description. The rule engine will suggest an intent automatically based on your keywords.
+      </p>
+    </div>
+
+    {% if form_error %}
+      <div class="alert alert-danger" role="alert">
+        <strong>Validation Error:</strong> {{ form_error }}
+      </div>
+    {% endif %}
+
+    <form method="post" action="/tickets/new" id="ticketCreateForm" onsubmit="handleSubmit(event)">
+      <!-- Title -->
+      <div class="form-group">
+        <label for="title">Ticket Subject / Title *</label>
+        <input 
+          type="text" 
+          id="title" 
+          name="title" 
+          class="form-control" 
+          placeholder="e.g. Urgent refund requested for cancelled flight" 
+          value="{{ form_data.title if form_data else '' }}"
+          required
+        >
+        <div class="form-hint">Brief summary of the issue.</div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label for="description">Detailed Description *</label>
+        <textarea 
+          id="description" 
+          name="description" 
+          class="form-control" 
+          placeholder="Explain the situation with any airline, hotel, or passenger details..." 
+          required
+        >{{ form_data.description if form_data else '' }}</textarea>
+        
+        <!-- Intent Suggestion Banner -->
+        <div id="intentSuggestionBox" style="display: none; margin-top: 0.6rem; padding: 0.75rem 1rem; border-radius: 6px; background: #faf5ff; border: 1px solid #d8b4fe;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.85rem; color: #6b21a8;">
+              💡 <strong>Suggested Intent:</strong> <span id="suggestedIntentBadge" class="badge badge-intent" style="font-size: 0.8rem; margin: 0 0.3rem;">None</span>
+              <span style="font-size: 0.78rem; color: #7e22ce;" id="matchedKeywordsText"></span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="applySuggestedIntent()" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+              Apply Suggestion &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <!-- Agency -->
+        <div class="form-group">
+          <label for="agency_id">Travel Agency *</label>
+          {% if user.role == "Requester" %}
+            <input type="text" class="form-control" value="{{ user.agency.name }}" disabled>
+            <input type="hidden" name="agency_id" value="{{ user.agency_id }}">
+            <div class="form-hint">Locked to your agency.</div>
+          {% else %}
+            <select id="agency_id" name="agency_id" class="form-control" required>
+              {% for ag in agencies %}
+                <option value="{{ ag.id }}" {% if form_data and form_data.agency_id == ag.id %}selected{% endif %}>
+                  {{ ag.name }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-hint">Agency submitting this issue.</div>
+          {% endif %}
+        </div>
+
+        <!-- TBOH (Booking Reference) -->
+        <div class="form-group">
+          <label for="tboh">Booking Reference (TBOH) *</label>
+          <input 
+            type="text" 
+            id="tboh" 
+            name="tboh" 
+            class="form-control" 
+            placeholder="e.g. TBOH-7701-DXB" 
+            value="{{ form_data.tboh if form_data else '' }}"
+            required
+            style="text-transform: uppercase;"
+          >
+          <div class="form-hint">Unique booking ID for context linking.</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <!-- Priority -->
+        <div class="form-group">
+          <label for="priority">Priority *</label>
+          <select id="priority" name="priority" class="form-control">
+            <option value="Low" {% if form_data and form_data.priority == 'Low' %}selected{% endif %}>Low</option>
+            <option value="Medium" {% if not form_data or form_data.priority == 'Medium' %}selected{% endif %}>Medium</option>
+            <option value="High" {% if form_data and form_data.priority == 'High' %}selected{% endif %}>High</option>
+            <option value="Urgent" {% if form_data and form_data.priority == 'Urgent' %}selected{% endif %}>Urgent</option>
+          </select>
+        </div>
+
+        <!-- Intent (Dropdown + Manual Override) -->
+        <div class="form-group">
+          <label for="intent">Intent Category (User can override) *</label>
+          <select id="intent" name="intent" class="form-control" onchange="handleIntentOverride()">
+            <option value="Refund" {% if form_data and form_data.intent == 'Refund' %}selected{% endif %}>Refund</option>
+            <option value="Date Change" {% if form_data and form_data.intent == 'Date Change' %}selected{% endif %}>Date Change</option>
+            <option value="Cancellation" {% if form_data and form_data.intent == 'Cancellation' %}selected{% endif %}>Cancellation</option>
+            <option value="Visa/Documents" {% if form_data and form_data.intent == 'Visa/Documents' %}selected{% endif %}>Visa/Documents</option>
+            <option value="Payment Issue" {% if form_data and form_data.intent == 'Payment Issue' %}selected{% endif %}>Payment Issue</option>
+            <option value="Supplier Issue" {% if form_data and form_data.intent == 'Supplier Issue' %}selected{% endif %}>Supplier Issue</option>
+            <option value="Other" {% if not form_data or form_data.intent == 'Other' %}selected{% endif %}>Other</option>
+          </select>
+          <div class="form-hint">Selected category. Can be manually overridden at any time.</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <!-- Check-in Date -->
+        <div class="form-group">
+          <label for="check_in_date">Check-in / Travel Date</label>
+          <input 
+            type="date" 
+            id="check_in_date" 
+            name="check_in_date" 
+            class="form-control"
+            value="{{ form_data.check_in_date if form_data else '' }}"
+          >
+        </div>
+
+        <!-- LCD (Last Cancellation Date) -->
+        <div class="form-group">
+          <label for="lcd">LCD (Last Cancellation Date)</label>
+          <input 
+            type="date" 
+            id="lcd" 
+            name="lcd" 
+            class="form-control"
+            value="{{ form_data.lcd if form_data else '' }}"
+          >
+          <div class="form-hint">Date after which cancellation penalties apply.</div>
+        </div>
+      </div>
+
+      <!-- Hidden field to hold matched keywords -->
+      <input type="hidden" id="matched_keywords" name="matched_keywords" value="{{ form_data.matched_keywords if form_data else '' }}">
+
+      <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.25rem;">
+        <a href="/tickets" class="btn btn-secondary">Cancel</a>
+        <button type="submit" id="submitBtn" class="btn btn-primary">
+          <span id="btnText">Submit Ticket</span>
+          <span id="btnLoading" style="display: none;">⏳ Creating...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let lastSuggestedIntent = "";
+  let userOverridden = false;
+  let debounceTimer = null;
+
+  function handleIntentOverride() {
+    userOverridden = true;
+  }
+
+  function applySuggestedIntent() {
+    if (lastSuggestedIntent) {
+      document.getElementById('intent').value = lastSuggestedIntent;
+      userOverridden = false;
+    }
+  }
+
+  async function checkIntentSuggestion() {
+    const title = document.getElementById('title').value;
+    const desc = document.getElementById('description').value;
+    const combined = (title + " " + desc).trim();
+
+    if (combined.length < 3) {
+      document.getElementById('intentSuggestionBox').style.display = 'none';
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/suggest-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: combined })
+      });
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const box = document.getElementById('intentSuggestionBox');
+
+      if (data.intent && data.intent !== 'Other' && data.matched_words && data.matched_words.length > 0) {
+        lastSuggestedIntent = data.intent;
+        document.getElementById('suggestedIntentBadge').innerText = data.intent;
+        document.getElementById('matchedKeywordsText').innerHTML = 
+          'Matched: ' + data.matched_words.map(w => '<code>' + w + '</code>').join(', ');
+        document.getElementById('matched_keywords').value = data.matched_words.join(', ');
+
+        box.style.display = 'block';
+
+        // Auto-select if user hasn't explicitly overridden
+        if (!userOverridden) {
+          document.getElementById('intent').value = data.intent;
+        }
+      } else {
+        box.style.display = 'none';
+        document.getElementById('matched_keywords').value = '';
+      }
+    } catch (e) {
+      console.warn('Auto-suggest lookup failed:', e);
+    }
+  }
+
+  document.getElementById('title').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(checkIntentSuggestion, 250);
+  });
+
+  document.getElementById('description').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(checkIntentSuggestion, 250);
+  });
+
+  function handleSubmit(e) {
+    document.getElementById('btnText').style.display = 'none';
+    document.getElementById('btnLoading').style.display = 'inline';
+    document.getElementById('submitBtn').disabled = true;
+  }
+</script>
+{% endblock %}

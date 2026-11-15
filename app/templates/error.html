@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ status_code }} - OpsDesk{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 3rem auto; text-align: center;">
+  <div class="card" style="padding: 2.5rem 1.5rem;">
+    <div style="font-size: 3rem; margin-bottom: 0.5rem;">
+      {% if status_code == 403 %}🚫{% elif status_code == 404 %}🔍{% else %}⚠️{% endif %}
+    </div>
+    
+    <h2 style="color: #1e293b; margin-bottom: 0.5rem;">
+      Error {{ status_code }}: {% if status_code == 403 %}Forbidden{% elif status_code == 404 %}Not Found{% else %}Request Error{% endif %}
+    </h2>
+
+    <p style="color: #64748b; margin-bottom: 1.5rem; font-size: 1rem;">
+      {{ detail }}
+    </p>
+
+    {% if status_code == 403 %}
+      <div class="alert alert-danger" style="text-align: left; font-size: 0.85rem; margin-bottom: 1.5rem;">
+        <strong>Role Enforcement Notice:</strong> As a <strong>{{ user.role }}</strong>, you are restricted from viewing or altering ticket data from other partner travel agencies.
+      </div>
+    {% endif %}
+
+    <div>
+      <a href="/tickets" class="btn btn-primary">Return to Ticket Dashboard</a>
+      <a href="/logout" class="btn btn-secondary">Switch User / Logout</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

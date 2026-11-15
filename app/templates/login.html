@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Login - OpsDesk{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 2rem auto;">
+  <div class="card">
+    <h2 style="margin-bottom: 0.5rem; text-align: center;">Welcome to OpsDesk</h2>
+    <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+      B2B Travel Operations & Context-Rich Ticketing
+    </p>
+
+    <form method="post" action="/login" id="loginForm">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input 
+          type="text" 
+          id="username" 
+          name="username" 
+          class="form-control" 
+          placeholder="Enter username" 
+          required 
+          autofocus
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password" 
+          class="form-control" 
+          placeholder="Enter password" 
+          required
+        >
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+        Sign In
+      </button>
+    </form>
+  </div>
+
+  <div class="card" style="background: #f8fafc;">
+    <h4 style="margin-bottom: 0.75rem; font-size: 0.9rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">
+      🚀 Demo Quick-Login (1-Click)
+    </h4>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+      Select any role to test permissions and agency isolation. Default password: <code>password123</code>.
+    </p>
+
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; display: flex; justify-content: space-between;" onclick="demoLogin('requester_skyline')">
+        <span>🏢 <strong>Requester</strong>: Skyline Travels</span>
+        <span style="color: var(--text-muted);">requester_skyline</span>
+      </button>
+
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; display: flex; justify-content: space-between;" onclick="demoLogin('requester_global')">
+        <span>🏢 <strong>Requester</strong>: Global Gateways</span>
+        <span style="color: var(--text-muted);">requester_global</span>
+      </button>
+
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; display: flex; justify-content: space-between;" onclick="demoLogin('agent_alice')">
+        <span>🎧 <strong>Agent</strong>: Alice (All Agencies)</span>
+        <span style="color: var(--text-muted);">agent_alice</span>
+      </button>
+
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; display: flex; justify-content: space-between;" onclick="demoLogin('manager_bob')">
+        <span>⚡ <strong>Escalation Manager</strong>: Bob</span>
+        <span style="color: var(--text-muted);">manager_bob</span>
+      </button>
+
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; display: flex; justify-content: space-between;" onclick="demoLogin('lead_charlie')">
+        <span>👑 <strong>Lead</strong>: Charlie</span>
+        <span style="color: var(--text-muted);">lead_charlie</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function demoLogin(username) {
+    document.getElementById('username').value = username;
+    document.getElementById('password').value = 'password123';
+    document.getElementById('loginForm').submit();
+  }
+</script>
+{% endblock %}
